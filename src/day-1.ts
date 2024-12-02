@@ -2,7 +2,7 @@
 import { OpenFileLineByLine } from "./helper.ts";
 
 function PrintUsage() {
-  console.log("Usage: day-one.ts [filename]");
+  console.log("Usage: day-1.ts [filename]");
 }
 
 async function GetListsFromFile(filename: string) {
