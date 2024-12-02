@@ -33,6 +33,9 @@ async function ParseInputsFromFile(filename: string) {
   return inputs;
 }
 
+// Checks one report with or without the problem dampener
+// Outputs if it is safe or not
+// and (only if problem dampener is on) the invalid indexes of it
 function CheckReport(report: Array<number>, problem_dampener: boolean) {
   let increasing = null;
   let safe = true;
