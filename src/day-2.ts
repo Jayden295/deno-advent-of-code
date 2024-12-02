@@ -33,66 +33,121 @@ async function ParseInputsFromFile(filename: string) {
   return inputs;
 }
 
-// Calculate safe reports from inputs
-function CalculateSafeReports(inputs: Array<Array<number>>) {
-  let number_of_safe_reports = 0;
+function CheckReport(report: Array<number>, problem_dampener: boolean) {
+  let increasing = null;
+  let safe = true;
+  const invalid_indexes = [];
 
-  // Loop though each report
-  for (const report of inputs) {
-    let safe = true;
+  for (let i = 1; i < report.length; i++) {
+    const previous_level = report[i - 1];
+    const current_level = report[i];
 
-    // null => unknown
-    // true => increasing
-    // false => decreasing
-    let increasing = null;
+    // Levels increasing
+    if (previous_level < current_level) {
+      // If we are still increasing and didn't decrease before
+      if (increasing == null || increasing == true) {
+        increasing = true;
 
-    // Loop though each levels from level 1 (since we compare previous too)
-    for (let i = 1; i < report.length; i++) {
-      const previous_level = report[i - 1];
-      const current_level = report[i];
-
-      // Levels increasing
-      if (previous_level < current_level) {
-        // If we are still increasing and didn't decrease before
-        if (increasing == null || increasing == true) {
-          increasing = true;
-
-          // Make sure that the difference is between 1 and 3 (included)
-          const difference = current_level - previous_level;
-          if (difference < 1 || 3 < difference) {
+        // Make sure that the difference is between 1 and 3 (included)
+        const difference = current_level - previous_level;
+        if (difference < 1 || 3 < difference) {
+          if (problem_dampener == true) {
+            invalid_indexes.push(i - 1);
+            invalid_indexes.push(i);
+            i++;
+            safe = false;
+          } else {
             safe = false;
             break;
           }
+        }
+      } else {
+        if (problem_dampener == true) {
+          invalid_indexes.push(i - 1);
+          invalid_indexes.push(i);
+          i++;
+          safe = false;
         } else {
           safe = false;
           break;
         }
-      } // Levels decreasing
-      else if (previous_level > current_level) {
+      }
+    } // Levels decreasing
+    else if (previous_level > current_level) {
+      // Make sure that we have been decreasing since the start
+      if (increasing == null || increasing == false) {
+        increasing = false;
 
-        // Make sure that we have been decreasing since the start
-        if (increasing == null || increasing == false) {
-          increasing = false;
-
-          // Make sure difference is between 1 and 3 (included)
-          const difference = previous_level - current_level;
-          if (difference < 1 || 3 < difference) {
+        // Make sure difference is between 1 and 3 (included)
+        const difference = previous_level - current_level;
+        if (difference < 1 || 3 < difference) {
+          if (problem_dampener === true) {
+            invalid_indexes.push(i - 1);
+            invalid_indexes.push(i);
+            i++;
+            safe = false;
+          } else {
             safe = false;
             break;
           }
+        }
+      } else {
+        if (problem_dampener === true) {
+          invalid_indexes.push(i - 1);
+          invalid_indexes.push(i);
+          i++;
+          safe = false;
         } else {
           safe = false;
           break;
         }
-      } // Levels are the same
-      else {
+      }
+    } // Levels are the same
+    else {
+      if (problem_dampener === true) {
+        invalid_indexes.push(i - 1);
+        invalid_indexes.push(i);
+        i++;
+        safe = false;
+      } else {
         safe = false;
         break;
       }
     }
+  }
 
-    if (safe == true)
+  return { safe, invalid_indexes };
+}
+
+// Calculate safe reports from inputs
+// Can calculate with problem dampener or not
+function CalculateSafeReports(
+  inputs: Array<Array<number>>,
+  problem_dampener: boolean,
+) {
+  let number_of_safe_reports = 0;
+
+  // Loop though each report
+  for (const report of inputs) {
+    let checked_report = CheckReport(report, problem_dampener);
+
+    // Invalid indexes is only filled if problem dampener is true
+    const invalid_indexes = checked_report.invalid_indexes;
+    
+    // Loop though each invalid index to see which one works
+    for (let i = 0; i < invalid_indexes.length; i++) {
+      if (checked_report.safe == true) {
+        break;
+      }
+
+      const dampened_report = report.slice();
+      dampened_report.splice(invalid_indexes[i], 1);
+      checked_report = CheckReport(dampened_report, false);
+    }
+
+    if (checked_report.safe == true) {
       number_of_safe_reports++;
+    }
   }
 
   return number_of_safe_reports;
@@ -105,6 +160,10 @@ if (filename == null) {
 }
 
 const inputs = await ParseInputsFromFile(filename);
-const number_of_safe_reports = CalculateSafeReports(inputs);
+const number_of_safe_reports = CalculateSafeReports(inputs, false);
+const with_problem_dampener = CalculateSafeReports(inputs, true);
 
 console.log(`number of safe reports: ${number_of_safe_reports}`);
+console.log(
+  `number of safe reports (with problem dampener): ${with_problem_dampener}`,
+);
