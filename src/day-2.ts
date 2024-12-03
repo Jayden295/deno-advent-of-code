@@ -136,7 +136,7 @@ function CalculateSafeReports(
 
     // Invalid indexes is only filled if problem dampener is true
     const invalid_indexes = checked_report.invalid_indexes;
-    
+
     // Loop though each invalid index to see which one works
     for (let i = 0; i < invalid_indexes.length; i++) {
       if (checked_report.safe == true) {
