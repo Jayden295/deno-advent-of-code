@@ -1,7 +1,8 @@
 {
   "tasks": {
     "one": "deno run --allow-read src/day-1.ts",
-    "two": "deno run --allow-read src/day-2.ts"
+    "two": "deno run --allow-read src/day-2.ts",
+    "three": "deno run --allow-read src/day-3.ts"
   },
   "imports": {
     "@std/streams": "jsr:@std/streams@^1.0.8"
