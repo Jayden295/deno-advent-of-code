@@ -33,11 +33,7 @@ function GetDistance(list_one: Array<number>, list_two: Array<number>) {
   let total_distance = 0;
 
   for (let i = 0; i < list_one.length; i++) {
-    if (list_one[i] < list_two[i]) {
-      total_distance += list_two[i] - list_one[i];
-    } else {
-      total_distance += list_one[i] - list_two[i];
-    }
+    total_distance += Math.abs(list_one[i] - list_two[i]);
   }
 
   return total_distance;
