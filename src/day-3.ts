@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 import { OpenFileLineByLine } from "./helper.ts";
 
 const expected_mul = "mul(";
