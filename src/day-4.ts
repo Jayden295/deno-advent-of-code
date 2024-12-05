@@ -92,7 +92,7 @@ function look_around_in_direction(
     if (i_of_char === word_to_find.length - 1) {
       return true;
     } else {
-      // Add to the direction then put it inside of the 
+      // Add to the direction then put it inside of the
       // Next loop
       y += y_dir;
       x += x_dir;
@@ -125,7 +125,6 @@ function look_around(
 
   // Loop over previous, current and next line
   for (let i = Math.max(y - 1, 0); i < Math.min(y + 2, lines.length); i++) {
-
     // Loop over each character of the line
     for (
       let l = Math.max(x - 1, 0);
