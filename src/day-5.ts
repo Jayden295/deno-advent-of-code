@@ -102,33 +102,104 @@ function partOne(
   let middle_page_numbers = 0;
 
   for (const update of updates) {
-    // Assume that it is valid by default
-    let valid = true;
+    const check_update_output = checkUpdate(update, rules, false, false);
 
-    for (let i = 0; i < update.length; i++) {
-      const rule = rules.get(update[i]);
+    // If the update is valid then add the middle value
+    if (check_update_output.valid === true) {
+      middle_page_numbers += check_update_output.middle_number;
+    }
+  }
 
-      // Get every value before the current number we are one
-      const numbers_before = update.slice(0, i);
+  return middle_page_numbers;
+}
 
-      // If we found a rule for that number (sometimes we don't and it's okay)
-      if (rule !== undefined) {
-        for (const number of rule) {
-          // If the number is present before the current one then it's invalid
-          // (rules says it needs to be after
+// Checks an update if it's valid
+// Functions in two ways:
+// If part_two_version is false => output the middle value if valid
+// If part_two_version is true => fix invalid updates
+//    => output the middle value (OF INVALID UPDATES ONLY!)
+function checkUpdate(
+  update: Array<number>,
+  rules: Map<number, Array<number>>,
+  part_two_version: boolean,
+  trying_to_fix_update: boolean,
+) {
+  let valid = true;
 
-          const number_found = numbers_before.indexOf(number);
-          if (-1 < number_found) {
+  for (let i = 0; i < update.length; i++) {
+    const rule = rules.get(update[i]);
+
+    // Get every value before the current number we are one
+    const numbers_before = update.slice(0, i);
+
+    // If we found a rule for that number (sometimes we don't and it's okay)
+    if (rule !== undefined) {
+      for (const number of rule) {
+        // If the number is present before the current one then it's invalid
+        // (rules says it needs to be after
+
+        const number_found = numbers_before.indexOf(number);
+        if (-1 < number_found) {
+          // Memory note: If there is a bug, it's cuz js also changed the actual og update
+          // Memory note: Me from future: Oh well, you were right
+
+          // The part two version fixes the invalid number and calls itself
+          // If it finds other invalid values
+          if (part_two_version === true) {
+            const potentially_fixed_update = update.slice();
+
+            // Swap the incorrect numbers together so it's correctly ordered
+            potentially_fixed_update[number_found] = update[i];
+            potentially_fixed_update[i] = update[number_found];
+
+            // Call check update recursively (will stop when it's valid)
+            return checkUpdate(
+              potentially_fixed_update,
+              rules,
+              part_two_version,
+              true,
+            );
+          } else {
+            // Say that it is not valid
             valid = false;
+            const middle_number = -1;
+            return { valid, middle_number };
           }
         }
       }
     }
+  }
 
-    // If the update is valid then add the middle value
-    if (valid === true) {
-      const middle_index = Math.floor(update.length / 2);
-      middle_page_numbers += update[middle_index];
+  if (
+    part_two_version === true && trying_to_fix_update === true ||
+    part_two_version === false
+  ) {
+    // Return middle value
+    const middle_index = Math.floor(update.length / 2);
+    const middle_number = update[middle_index];
+    return { valid, middle_number };
+  } else {
+    // Only happens if part_two_version is true and we haven't
+    // fixed the update (because it's already valid)
+    valid = false;
+    const middle_number = -1;
+    return { valid, middle_number };
+  }
+}
+
+// If a update is invalid, fix it then take it's middle value
+// Returns every middle page index that is invalid
+function partTwo(
+  updates: Array<Array<number>>,
+  rules: Map<number, Array<number>>,
+) {
+  let middle_page_numbers = 0;
+
+  for (const update of updates) {
+    const check_update_output = checkUpdate(update, rules, true, false);
+
+    if (check_update_output.valid === true) {
+      middle_page_numbers += check_update_output.middle_number;
     }
   }
 
@@ -145,5 +216,17 @@ const lines = await OpenFileLineByLineAsArray(filename);
 
 const parse_rules_output = parseRules(lines);
 const page_updates = parsePageUpdates(lines, parse_rules_output.i);
-const middle_page_values = partOne(page_updates, parse_rules_output.rules);
-console.log(`every valid middle page index added up: ${middle_page_values}`);
+const middle_page_values_valid = partOne(
+  page_updates,
+  parse_rules_output.rules,
+);
+const middle_page_values_invalid = partTwo(
+  page_updates,
+  parse_rules_output.rules,
+);
+console.log(
+  `every valid middle page index added up: ${middle_page_values_valid}`,
+);
+console.log(
+  `every invalid middle page index added up: ${middle_page_values_invalid}`,
+);
