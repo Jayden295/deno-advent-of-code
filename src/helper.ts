@@ -10,3 +10,17 @@ export async function OpenFileLineByLine(filename: string) {
     .pipeThrough(new TextLineStream());
   return lines;
 }
+
+export async function OpenFileLineByLineAsArray(filename: string) {
+  const lines_stream = await OpenFileLineByLine(filename);
+  const lines = [];
+  for await (const line of lines_stream) {
+    lines.push(line);
+  }
+
+  return lines;
+}
+
+export function isNumber(char: string) {
+  return /^\d+$/.test(char);
+}
