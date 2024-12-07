@@ -111,17 +111,71 @@ function checkEquation(equation_pointer: Array<number>): boolean {
   }
 }
 
+// Check if the equation is valid or not with concat instructions
+function checkEquationConcat(equation_pointer: Array<number>): boolean {
+  const equation = structuredClone(equation_pointer);
+
+  // If we got only two values check if they are equal
+  if (equation.length === 2) {
+    if (equation[0] === equation[1]) {
+      return true;
+    } else {
+      return false;
+    }
+  } else if (equation.length < 2) {
+    return false;
+  }
+
+  // Multiply both first values
+  const multiple = equation[1] * equation[2];
+
+  equation[1] = multiple;
+  equation.splice(2, 1);
+
+  // If this is invalid try it with adding
+  if (checkEquationConcat(equation) === false) {
+    const equation_copy = structuredClone(equation_pointer);
+    const adding = equation_copy[1] +
+      equation_copy[2];
+    equation_copy[1] = adding;
+    equation_copy.splice(2, 1);
+
+    // If this is still invalid try it with concat instruction
+    if (checkEquationConcat(equation_copy) === false) {
+      const another_equation_copy = structuredClone(equation_pointer);
+      const concat = parseInt(
+        another_equation_copy[1].toString().concat(
+          another_equation_copy[2].toString(),
+        ),
+      );
+
+      another_equation_copy[1] = concat;
+      another_equation_copy.splice(2, 1);
+
+      return checkEquationConcat(another_equation_copy);
+    }
+    return true;
+  }
+
+  return true;
+}
+
 // Calculate the number of total valid calibrations in equations
 function calculateTotalCalibration(equations: Array<Array<number>>) {
   let total_calibration = 0;
+  let total_calibration_concat = 0;
 
   for (let i = 0; i < equations.length; i++) {
     if (checkEquation(equations[i]) === true) {
-      total_calibration += equations[i][0];
+      total_calibration += equations[i][0]
+    }
+
+    if (checkEquationConcat(equations[i]) === true) {
+      total_calibration_concat += equations[i][0];
     }
   }
 
-  return total_calibration;
+  return {total_calibration, total_calibration_concat};
 }
 
 const filename = Deno.args[0];
@@ -132,5 +186,7 @@ if (filename == null) {
 
 const lines = await OpenFileLineByLineAsArray(filename);
 const parsed = parse(lines);
-const total_calibration = calculateTotalCalibration(parsed);
-console.log(`total calibration: ${total_calibration}`);
+const total_calibrations = calculateTotalCalibration(parsed);
+
+console.log(`total calibration: ${total_calibrations.total_calibration}`);
+console.log(`total calibration with concat: ${total_calibrations.total_calibration_concat}`);
