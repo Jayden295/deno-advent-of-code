@@ -25,7 +25,7 @@ interface mapLocation {
 }
 
 function printUsage() {
-  console.log("Usage: day-4.ts [filename]");
+  console.log("Usage: day-6.ts [filename]");
 }
 
 // Find where the guard initial position is in a map
