@@ -21,6 +21,6 @@ export async function OpenFileLineByLineAsArray(filename: string) {
   return lines;
 }
 
-export function isNumber(char: string) {
+export function isNumber(char: string): boolean {
   return /^\d+$/.test(char);
 }
