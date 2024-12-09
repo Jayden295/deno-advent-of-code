@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { OpenFileLineByLineAsArray } from "./helper.ts";
+import { OpenFileLineByLineAsArray } from "../helper.ts";
 
 enum Reason {
   Loop = "loop",

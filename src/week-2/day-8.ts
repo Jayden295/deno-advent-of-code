@@ -1,4 +1,4 @@
-import { OpenFileLineByLineAsArray } from "./helper.ts";
+import { OpenFileLineByLineAsArray } from "../helper.ts";
 
 interface Location {
   x: number;

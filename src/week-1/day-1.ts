@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { OpenFileLineByLine } from "./helper.ts";
+import { OpenFileLineByLine } from "../helper.ts";
 
 function PrintUsage() {
   console.log("Usage: day-1.ts [filename]");

@@ -1,4 +1,4 @@
-import { isNumber, OpenFileLineByLineAsArray } from "./helper.ts";
+import { isNumber, OpenFileLineByLineAsArray } from "../helper.ts";
 
 function printUsage() {
   console.log("Usage: day-7.ts [filename]");
