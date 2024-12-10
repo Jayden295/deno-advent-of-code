@@ -7,7 +7,8 @@
     "five": "deno run --allow-read src/week-1/day-5.ts",
     "six": "deno run --allow-read src/week-1/day-6.ts",
     "seven": "deno run --allow-read src/week-1/day-7.ts",
-    "eight": "deno run --allow-read src/week-2/day-8.ts"
+    "eight": "deno run --allow-read src/week-2/day-8.ts",
+    "nine": "deno run --allow-read src/week-2/day-9.ts"
   },
   "imports": {
     "@std/streams": "jsr:@std/streams@^1.0.8"
