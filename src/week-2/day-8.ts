@@ -6,7 +6,7 @@ interface Location {
 }
 
 function printUsage() {
-  console.log("Usage: day-7.ts [filename]");
+  console.log("Usage: day-8.ts [filename]");
 }
 
 // Returns a hashmap containing a list of points for a specific frequency
