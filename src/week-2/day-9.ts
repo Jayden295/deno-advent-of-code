@@ -6,6 +6,12 @@ interface Block {
   file_id: number;
 }
 
+// Represents a section of the disk
+interface DiskSection {
+  starting_index: number;
+  size: number;
+}
+
 function printUsage() {
   console.log("Usage: day-9.ts [filename]");
 }
@@ -40,11 +46,12 @@ async function parse(filename: string): Promise<string> {
 // Returns a disk, an array of gaps indexes and the last file index
 function createDisk(disk_map: string) {
   const disk: Array<Block> = [];
-  let gaps: Array<number> = [];
+  let files: Array<DiskSection> = [];
+  let gaps: Array<DiskSection> = [];
   let last_file_pointer = -1;
 
   let file_id = 0;
-  let unhandled_free_space: Array<number> = [];
+  let unhandled_free_space: Array<DiskSection> = [];
 
   for (let i = 0; i < disk_map.length; i++) {
     // If next file is not empty => we are going to create a gap so sav eit
@@ -54,6 +61,15 @@ function createDisk(disk_map: string) {
     }
 
     // Add next file blocks
+
+    // Store file location
+    const file: DiskSection = {
+      starting_index: disk.length,
+      size: parseInt(disk_map[i]),
+    };
+    files.push(file);
+
+    // Add it to the disk representation
     for (let l = 0; l < parseInt(disk_map[i]); l++) {
       const individual_block: Block = { empty: false, file_id: file_id };
       disk.push(individual_block);
@@ -62,44 +78,104 @@ function createDisk(disk_map: string) {
     last_file_pointer = disk.length - 1;
     file_id++;
 
+    // Space blocks
     i++;
 
-    // Add free space blocks
-    for (let l = disk.length; l < disk.length + parseInt(disk_map[i]); l++) {
-      unhandled_free_space.push(l);
-    }
+    // Store space location
+    const space: DiskSection = {
+      starting_index: disk.length,
+      size: parseInt(disk_map[i]),
+    };
+    unhandled_free_space.push(space);
 
+    // Add it to the disk representaiton
     for (let l = 0; l < parseInt(disk_map[i]); l++) {
       const individual_block: Block = { empty: true, file_id: -1 };
       disk.push(individual_block);
     }
   }
 
-  return { disk, gaps, last_file_pointer };
+  return { disk, files, gaps };
 }
 
 // Remove gaps from a disk
 // This literally causes fragmentation
-function removeGaps(
+function removeEveryGaps(
   disk_pointer: Block[],
-  gaps: number[],
-  last_file_pointer_pointer: number,
+  files: DiskSection[],
+  gaps: DiskSection[],
 ) {
   // Copy to make sure we don't change the original values
   const disk = structuredClone(disk_pointer);
-  let last_file_pointer = structuredClone(last_file_pointer_pointer);
+  const last_file = files[files.length - 1];
+  let last_file_pointer = last_file.starting_index + last_file.size - 1;
 
   for (const gap of gaps) {
-    if (last_file_pointer <= gap) {
-      break;
+    for (let i = gap.starting_index; i < gap.starting_index + gap.size; i++) {
+      if (last_file_pointer <= i) {
+        break;
+      }
+
+      disk[i] = disk[last_file_pointer];
+      disk[last_file_pointer] = { empty: true, file_id: -1 };
+
+      do {
+        last_file_pointer--;
+      } while (disk[last_file_pointer].empty === true);
     }
+  }
 
-    disk[gap] = disk[last_file_pointer];
-    disk[last_file_pointer] = { empty: true, file_id: -1 };
+  return disk;
+}
 
-    do {
-      last_file_pointer--;
-    } while (disk[last_file_pointer].empty === true);
+function defragDisk(
+  disk_pointer: Block[],
+  files: DiskSection[],
+  gaps_pointer: DiskSection[],
+) {
+  const gaps = structuredClone(gaps_pointer);
+  const disk = structuredClone(disk_pointer);
+
+  for (let i = files.length - 1; 0 <= i; i--) {
+    for (let l = 0; l < gaps.length; l++) {
+      if (files[i].size <= gaps[l].size) {
+        for (let m = 0; m < files[i].size; m++) {
+          //
+          const file_pointer = files[i].starting_index + m;
+          const gap_pointer = gaps[l].starting_index + m;
+
+          disk[gap_pointer] = disk[file_pointer];
+          disk[file_pointer] = { empty: true, file_id: -1 };
+        }
+
+        // FIXME: Maybe some gaps that are empty are  not empty?
+        // 3
+        // 1
+        // 0111.1
+        gaps[l].starting_index += files[i].size;
+        gaps[l].size -= files[i].size ;
+
+        if (gaps[l].size <= 0) {
+          gaps.splice(l, 1);
+          //console.log(gaps[l])
+          //console.log("HEY ITS AT ZERO WHAT");
+        } else {
+          for (
+            let t = gaps[l].starting_index;
+            t < gaps[l].starting_index + gaps[l].size;
+            t++
+          ) {
+            //console.log(gaps[t])
+            console.log(disk[t]);
+            if (disk[t].empty === false) {
+              console.log(disk[t]);
+            }
+          }
+        }
+        break;
+      }
+    }
+    // search every gaps for a gap that fits!
   }
 
   return disk;
@@ -110,11 +186,9 @@ function calculateChecksum(disk: Block[]) {
   let filesystem_checksum = 0;
 
   for (let i = 0; i < disk.length; i++) {
-    if (disk[i].empty === true) {
-      break;
+    if (disk[i].empty === false) {
+      filesystem_checksum += i * disk[i].file_id;
     }
-
-    filesystem_checksum += i * disk[i].file_id;
   }
 
   return filesystem_checksum;
@@ -131,13 +205,32 @@ async function main() {
   const create_disk_output = createDisk(disk_map);
 
   const disk = create_disk_output.disk;
+  const files = create_disk_output.files;
   const gaps = create_disk_output.gaps;
-  const last_file_pointer = create_disk_output.last_file_pointer;
 
-  const new_disk = removeGaps(disk, gaps, last_file_pointer);
+  const no_gaps_disk = removeEveryGaps(disk, files, gaps);
+  const defrag_disk = defragDisk(disk, files, gaps);
 
-  const new_checksum = calculateChecksum(new_disk);
-  console.log(new_checksum);
+  for (let i = 0; i < defrag_disk.length; i++) {
+    if (defrag_disk[i].empty === true) {
+
+    process.stdout.write(".");
+    } else {
+
+    process.stdout.write(`${defrag_disk[i].file_id}`);
+    }
+    
+  }
+  console.log()
+
+  console.log("00992111777.44.333....5555.6666.....8888..")
+
+  const no_gaps_checksum = calculateChecksum(no_gaps_disk);
+  const defrag_checksum = calculateChecksum(defrag_disk);
+
+  console.log(`absolutely no gaps checksum: ${no_gaps_checksum}`);
+  console.log(`defragged checksum: ${defrag_checksum}`);
 }
 
 main();
+// 8683262343842 too high
