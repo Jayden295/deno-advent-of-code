@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 import { isNumber, OpenFileLineByLineAsArray } from "../helper.ts";
 
 function printUsage() {
