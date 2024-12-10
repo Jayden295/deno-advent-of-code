@@ -46,9 +46,8 @@ async function parse(filename: string): Promise<string> {
 // Returns a disk, an array of gaps indexes and the last file index
 function createDisk(disk_map: string) {
   const disk: Array<Block> = [];
-  let files: Array<DiskSection> = [];
+  const files: Array<DiskSection> = [];
   let gaps: Array<DiskSection> = [];
-  let last_file_pointer = -1;
 
   let file_id = 0;
   let unhandled_free_space: Array<DiskSection> = [];
@@ -75,7 +74,6 @@ function createDisk(disk_map: string) {
       disk.push(individual_block);
     }
 
-    last_file_pointer = disk.length - 1;
     file_id++;
 
     // Space blocks
@@ -128,6 +126,8 @@ function removeEveryGaps(
   return disk;
 }
 
+// Defrag disk
+// We actually defragment the disk now
 function defragDisk(
   disk_pointer: Block[],
   files: DiskSection[],
@@ -138,9 +138,14 @@ function defragDisk(
 
   for (let i = files.length - 1; 0 <= i; i--) {
     for (let l = 0; l < gaps.length; l++) {
+      // Don't move the file to a gap after it, that would fragmen tit
+      if (files[i].starting_index <= gaps[l].starting_index) {
+        break;
+      }
+
       if (files[i].size <= gaps[l].size) {
+        // Move the file to the gap
         for (let m = 0; m < files[i].size; m++) {
-          //
           const file_pointer = files[i].starting_index + m;
           const gap_pointer = gaps[l].starting_index + m;
 
@@ -148,34 +153,16 @@ function defragDisk(
           disk[file_pointer] = { empty: true, file_id: -1 };
         }
 
-        // FIXME: Maybe some gaps that are empty are  not empty?
-        // 3
-        // 1
-        // 0111.1
+        // Update the gap sizes
         gaps[l].starting_index += files[i].size;
         gaps[l].size -= files[i].size ;
 
         if (gaps[l].size <= 0) {
           gaps.splice(l, 1);
-          //console.log(gaps[l])
-          //console.log("HEY ITS AT ZERO WHAT");
-        } else {
-          for (
-            let t = gaps[l].starting_index;
-            t < gaps[l].starting_index + gaps[l].size;
-            t++
-          ) {
-            //console.log(gaps[t])
-            console.log(disk[t]);
-            if (disk[t].empty === false) {
-              console.log(disk[t]);
-            }
-          }
-        }
+        } 
         break;
       }
     }
-    // search every gaps for a gap that fits!
   }
 
   return disk;
@@ -211,20 +198,6 @@ async function main() {
   const no_gaps_disk = removeEveryGaps(disk, files, gaps);
   const defrag_disk = defragDisk(disk, files, gaps);
 
-  for (let i = 0; i < defrag_disk.length; i++) {
-    if (defrag_disk[i].empty === true) {
-
-    process.stdout.write(".");
-    } else {
-
-    process.stdout.write(`${defrag_disk[i].file_id}`);
-    }
-    
-  }
-  console.log()
-
-  console.log("00992111777.44.333....5555.6666.....8888..")
-
   const no_gaps_checksum = calculateChecksum(no_gaps_disk);
   const defrag_checksum = calculateChecksum(defrag_disk);
 
@@ -233,4 +206,3 @@ async function main() {
 }
 
 main();
-// 8683262343842 too high
