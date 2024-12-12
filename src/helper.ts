@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { TextLineStream } from "@std/streams";
 
+export interface Location {
+  x: number;
+  y: number;
+}
+
 export async function OpenFileLineByLine(filename: string) {
   const file = await Deno.open(filename, { read: true });
 
