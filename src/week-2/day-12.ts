@@ -8,6 +8,7 @@ interface mapItem {
 interface plotSize {
   area: number;
   perimeter: number;
+  corners: number;
 }
 
 function printUsage() {
@@ -57,6 +58,7 @@ function getRegionPrice(map: mapItem[][], current: Location): plotSize {
   // Start area at one since the current one we are on is one
   let area: number = 1;
   let perimeter: number = 0;
+  let corners: number = countCorner(map, current);
 
   current_map_item.location_visited = true;
 
@@ -83,6 +85,7 @@ function getRegionPrice(map: mapItem[][], current: Location): plotSize {
 
           const neighbour_price: plotSize = getRegionPrice(map, to_test);
 
+          corners += neighbour_price.corners;
           area += neighbour_price.area;
           perimeter += neighbour_price.perimeter;
         }
@@ -94,24 +97,83 @@ function getRegionPrice(map: mapItem[][], current: Location): plotSize {
     }
   }
 
-  return { area, perimeter };
+  return { area, perimeter, corners };
+}
+
+// Count amount of corners in one map item
+function countCorner(map: mapItem[][], current: Location): number {
+  const expected_char: string = map[current.y][current.x].char;
+  let corners: number = 0;
+
+  // Don't get fooled, we move the x by 1 and move the y by -1 seperately
+  const possible_start_of_corners: Location[] = [
+    { x: 1, y: -1 },
+    { x: -1, y: -1 },
+    { x: 1, y: 1 },
+    { x: -1, y: 1 },
+  ];
+
+  for (const possible_start of possible_start_of_corners) {
+    const test_x = possible_start.x + current.x;
+    const test_y = possible_start.y + current.y;
+
+    let y_valid = false;
+    let x_valid = false;
+    let xy_valid = false;
+
+    if (
+      0 <= test_y && test_y < map.length && 0 <= current.x &&
+      current.x < map[test_y].length && map[test_y][current.x].char === expected_char
+    ) {
+      y_valid = true;
+    }
+
+    if (
+      0 <= current.y && current.y < map.length && 0 <= test_x &&
+      test_x < map[current.y].length && map[current.y][test_x].char === expected_char
+    ) {
+      x_valid = true;
+    }
+
+    if (
+      0 <= test_y && test_y < map.length && 0 <= test_x &&
+      test_x < map[test_y].length && map[test_y][test_x].char === expected_char
+    ) {
+      xy_valid = true;
+    }
+
+    if (x_valid === true && y_valid === true && xy_valid === false) {
+      corners++;
+    }
+
+    if (x_valid === false && y_valid === false) {
+      corners++;
+    }
+  }
+
+  return corners;
 }
 
 // Loop though every character to get total price
-function getTotalPrice(map_pointer: mapItem[][]) {
-  const map = structuredClone(map_pointer)
-  let price: number = 0;
+function getTotalPrice(
+  map_pointer: mapItem[][],
+): { normal_price: number; bulk_price: number } {
+  const map: mapItem[][] = structuredClone(map_pointer);
+  let normal_price: number = 0;
+  let bulk_price: number = 0;
 
   for (let y = 0; y < map.length; y++) {
     for (let x = 0; x < map[y].length; x++) {
       if (map[y][x].location_visited === false) {
         const output: plotSize = getRegionPrice(map, { x, y });
-        price += output.area * output.perimeter;
+
+        normal_price += output.area * output.perimeter;
+        bulk_price += output.area * output.corners;
       }
     }
   }
 
-  return price;
+  return { normal_price, bulk_price };
 }
 
 async function main() {
@@ -124,8 +186,10 @@ async function main() {
   const lines: string[] = await OpenFileLineByLineAsArray(filename);
   const map: mapItem[][] = parse(lines);
 
-  const total_price = getTotalPrice(map);
-  console.log(`total price (part 1) : ${total_price}`);
+  const prices = getTotalPrice(map);
+
+  console.log(`normal (non bulk) price (part 1) : ${prices.normal_price}`);
+  console.log(`bulk price (part 2) : ${prices.bulk_price}`);
 }
 
 main();
