@@ -1,10 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { OpenFileLineByLineAsArray } from "../helper.ts";
-
-interface Position {
-  x: number;
-  y: number;
-}
+import { Location, OpenFileLineByLineAsArray } from "../helper.ts";
 
 function printUsage() {
   console.log("Usage: day-9.ts [filename]");
@@ -28,7 +23,7 @@ function parse(lines: string[]): string[] {
 // Get score of a specific trailhead
 function trailheadLoop(
   topographic_map: string[],
-  starting_index: Position,
+  starting_index: Location,
   goal: string,
   allow_multiple_paths: boolean,
 ): number {
@@ -50,7 +45,7 @@ function trailheadLoop(
 
   const next_number = (current_number + 1).toString();
 
-  const possible_movement: Position[] = [
+  const possible_movement: Location[] = [
     { x: 0, y: -1 },
     { x: -1, y: 0 },
     { x: 1, y: 0 },
@@ -59,7 +54,7 @@ function trailheadLoop(
 
   let score: number = 0;
   for (let i = 0; i < possible_movement.length; i++) {
-    const to_test: Position = {
+    const to_test: Location = {
       x: starting_index.x + possible_movement[i].x,
       y: starting_index.y + possible_movement[i].y,
     };
@@ -80,7 +75,7 @@ function trailheadLoop(
 // Wrapper for trailheadLoop since it modifies the topographic_map
 function getTrailheadScore(
   topographic_map: string[],
-  starting_index: Position,
+  starting_index: Location,
   goal: string,
   allow_multiple_paths: boolean,
 ) {
@@ -103,7 +98,7 @@ function getSumOfTrailheads(topographic_map: string[], allow_multiple_paths: boo
   for (let y = 0; y < topographic_map.length; y++) {
     for (let x = 0; x < topographic_map[y].length; x++) {
       if (topographic_map[y][x] === "0") {
-        const starting_index: Position = { x, y };
+        const starting_index: Location = { x, y };
         score += getTrailheadScore(topographic_map, starting_index, "9", allow_multiple_paths);
       }
     }

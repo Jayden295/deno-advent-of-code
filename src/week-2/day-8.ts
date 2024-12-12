@@ -1,10 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { OpenFileLineByLineAsArray } from "../helper.ts";
-
-interface Location {
-  x: number;
-  y: number;
-}
+import { Location, OpenFileLineByLineAsArray } from "../helper.ts";
 
 function printUsage() {
   console.log("Usage: day-8.ts [filename]");
