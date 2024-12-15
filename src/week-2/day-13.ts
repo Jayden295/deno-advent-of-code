@@ -8,7 +8,7 @@ const BUTTON_AB_Y_START = ", Y+";
 const PRIZE_X_START = "Prize: X=";
 const PRIZE_Y_START = ", Y=";
 
-export interface Machine {
+interface Machine {
   a: Location;
   b: Location;
   prize: Location;
