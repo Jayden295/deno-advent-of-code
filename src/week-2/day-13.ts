@@ -94,21 +94,26 @@ function parseLines(lines: string[]): Machine[] {
 // Return the least amount of tokens used to suceed
 // At the machine, returns 0 if it's impossible without more then 100 tries
 function countTokensUsed(machine: Machine): number {
-  for (let nb = 1; nb <= 100; nb++) {
-    const na = (machine.prize.x - nb * machine.b.x) / machine.a.x;
-    if (
-      na % 1 === 0 && na <= 100 &&
-      machine.prize.y === na * machine.a.y + nb * machine.b.y
-    ) {
-      return na * 3 + nb;
-    }
+  const numeratorX = machine.prize.x * machine.b.y -
+    machine.prize.y * machine.b.x;
+  const denomiatorX = machine.a.x * machine.b.y - machine.a.y * machine.b.x;
+
+  const numeratorY = machine.prize.x * machine.a.y -
+    machine.prize.y * machine.a.x;
+  const denomiatorY = machine.a.y * machine.b.x - machine.a.x * machine.b.y;
+
+  if (numeratorX % denomiatorX == 0 && numeratorY % denomiatorY == 0) {
+    const a = numeratorX / denomiatorX;
+    const b = numeratorY / denomiatorY;
+    
+    return 3 * a + b;
   }
 
   return 0;
 }
 
 // Part one, returns amount of tokens used for a bunch of machines
-function partOne(machines: Machine[]): number {
+function countTokensInMachines(machines: Machine[]): number {
   let tokens_used: number = 0;
 
   for (const machine of machines) {
@@ -116,6 +121,18 @@ function partOne(machines: Machine[]): number {
   }
 
   return tokens_used;
+}
+
+// Add 10000000000000 to every number and 
+function partTwo(machines_pointer: Machine[]): number {
+  const machines = structuredClone(machines_pointer);
+
+  for (const machine of machines) {
+    machine.prize.x += 10000000000000;
+    machine.prize.y += 10000000000000;
+  }
+
+  return countTokensInMachines(machines);
 }
 
 async function main() {
@@ -128,8 +145,11 @@ async function main() {
   const lines: string[] = await OpenFileLineByLineAsArray(filename);
   const machines: Machine[] = parseLines(lines);
 
-  const part_one: number = partOne(machines);
+  const part_one: number = countTokensInMachines(machines);
+  const part_two: number = partTwo(machines);
+
   console.log(`part 1 (tokens used): ${part_one}`);
+  console.log(`part 2 (tokens used after adding 10000000000000): ${part_two}`);
 }
 
 main();
