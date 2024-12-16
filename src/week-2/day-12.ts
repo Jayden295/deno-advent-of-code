@@ -123,14 +123,16 @@ function countCorner(map: mapItem[][], current: Location): number {
 
     if (
       0 <= test_y && test_y < map.length && 0 <= current.x &&
-      current.x < map[test_y].length && map[test_y][current.x].char === expected_char
+      current.x < map[test_y].length &&
+      map[test_y][current.x].char === expected_char
     ) {
       y_valid = true;
     }
 
     if (
       0 <= current.y && current.y < map.length && 0 <= test_x &&
-      test_x < map[current.y].length && map[current.y][test_x].char === expected_char
+      test_x < map[current.y].length &&
+      map[current.y][test_x].char === expected_char
     ) {
       x_valid = true;
     }

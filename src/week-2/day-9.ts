@@ -156,11 +156,11 @@ function defragDisk(
 
         // Update the gap sizes
         gaps[l].starting_index += files[i].size;
-        gaps[l].size -= files[i].size ;
+        gaps[l].size -= files[i].size;
 
         if (gaps[l].size <= 0) {
           gaps.splice(l, 1);
-        } 
+        }
         break;
       }
     }

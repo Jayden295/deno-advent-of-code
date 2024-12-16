@@ -168,7 +168,7 @@ function calculateTotalCalibration(equations: Array<Array<number>>) {
 
   for (let i = 0; i < equations.length; i++) {
     if (checkEquation(equations[i]) === true) {
-      total_calibration += equations[i][0]
+      total_calibration += equations[i][0];
     }
 
     if (checkEquationConcat(equations[i]) === true) {
@@ -176,7 +176,7 @@ function calculateTotalCalibration(equations: Array<Array<number>>) {
     }
   }
 
-  return {total_calibration, total_calibration_concat};
+  return { total_calibration, total_calibration_concat };
 }
 
 const filename = Deno.args[0];
@@ -190,4 +190,6 @@ const parsed = parse(lines);
 const total_calibrations = calculateTotalCalibration(parsed);
 
 console.log(`total calibration: ${total_calibrations.total_calibration}`);
-console.log(`total calibration with concat: ${total_calibrations.total_calibration_concat}`);
+console.log(
+  `total calibration with concat: ${total_calibrations.total_calibration_concat}`,
+);

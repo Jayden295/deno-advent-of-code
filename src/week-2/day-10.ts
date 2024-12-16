@@ -63,7 +63,12 @@ function trailheadLoop(
       if (0 <= to_test.x && to_test.x < topographic_map[to_test.y].length) {
         // If the current one is indeed to next number update score
         if (topographic_map[to_test.y][to_test.x] === next_number) {
-          score += trailheadLoop(topographic_map, to_test, goal, allow_multiple_paths);
+          score += trailheadLoop(
+            topographic_map,
+            to_test,
+            goal,
+            allow_multiple_paths,
+          );
         }
       }
     }
@@ -92,14 +97,22 @@ function getTrailheadScore(
   return trailheadLoop(copy, starting_index, goal, allow_multiple_paths);
 }
 
-function getSumOfTrailheads(topographic_map: string[], allow_multiple_paths: boolean) {
+function getSumOfTrailheads(
+  topographic_map: string[],
+  allow_multiple_paths: boolean,
+) {
   let score = 0;
 
   for (let y = 0; y < topographic_map.length; y++) {
     for (let x = 0; x < topographic_map[y].length; x++) {
       if (topographic_map[y][x] === "0") {
         const starting_index: Location = { x, y };
-        score += getTrailheadScore(topographic_map, starting_index, "9", allow_multiple_paths);
+        score += getTrailheadScore(
+          topographic_map,
+          starting_index,
+          "9",
+          allow_multiple_paths,
+        );
       }
     }
   }
@@ -121,7 +134,9 @@ async function main() {
   const part_two = getSumOfTrailheads(topographic_map, true);
 
   console.log(`sum of all trailheads: ${part_one}`);
-  console.log(`sum of all trailheads while allowing multiple paths for one same trail: ${part_two}`);
+  console.log(
+    `sum of all trailheads while allowing multiple paths for one same trail: ${part_two}`,
+  );
 }
 
 main();

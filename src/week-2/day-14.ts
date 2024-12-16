@@ -9,7 +9,9 @@ interface Robot {
 }
 
 function printUsage() {
-  console.log("Usage: day-14.ts [filename] [time_for_part_one] [maximum_amount_of_tries (part_two)]");
+  console.log(
+    "Usage: day-14.ts [filename] [time_for_part_one] [maximum_amount_of_tries (part_two)]",
+  );
 }
 
 // Parse robot position and velocity from line
@@ -141,7 +143,7 @@ function moveRobotsAfter(
   const safety_factor = quadrants[0][0] * quadrants[0][1] * quadrants[1][0] *
     quadrants[1][1];
 
-    // Loop over each line of the map to see if we potentially have a tree
+  // Loop over each line of the map to see if we potentially have a tree
   for (const line of map) {
     if (line.includes("###########")) {
       console.log("MAYBE THIS ONE IS A TREE");
@@ -163,19 +165,21 @@ async function main() {
   const filename: string = Deno.args[0];
   if (filename === null) {
     printUsage();
-    throw new Error("Please write a valid filename and other arguments")
+    throw new Error("Please write a valid filename and other arguments");
   }
 
   const time_for_part_one: number = parseInt(Deno.args[1]);
   if (isNaN(time_for_part_one)) {
     printUsage();
-    throw new Error("Please write a valid time for part one and other arguments");
+    throw new Error(
+      "Please write a valid time for part one and other arguments",
+    );
   }
 
   const amount_of_tries: number = parseInt(Deno.args[2]);
   if (isNaN(amount_of_tries)) {
     printUsage();
-    throw new Error("Please write a valid amount of tries and other arguments")
+    throw new Error("Please write a valid amount of tries and other arguments");
   }
 
   const lines: string[] = await OpenFileLineByLineAsArray(filename);
@@ -187,7 +191,9 @@ async function main() {
   for (let i = 0; i < amount_of_tries; i++) {
     const info = moveRobotsAfter(robots, size, i);
     if (i === time_for_part_one) {
-        console.log(`part one safety factor (after ${time_for_part_one} seconds): ${info.safety_factor}`);
+      console.log(
+        `part one safety factor (after ${time_for_part_one} seconds): ${info.safety_factor}`,
+      );
     }
 
     if (info.maybe_tree === true) {

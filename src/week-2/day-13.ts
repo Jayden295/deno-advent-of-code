@@ -105,7 +105,7 @@ function countTokensUsed(machine: Machine): number {
   if (numeratorX % denomiatorX == 0 && numeratorY % denomiatorY == 0) {
     const a = numeratorX / denomiatorX;
     const b = numeratorY / denomiatorY;
-    
+
     return 3 * a + b;
   }
 
@@ -123,7 +123,7 @@ function countTokensInMachines(machines: Machine[]): number {
   return tokens_used;
 }
 
-// Add 10000000000000 to every number and 
+// Add 10000000000000 to every number and
 function partTwo(machines_pointer: Machine[]): number {
   const machines = structuredClone(machines_pointer);
 
