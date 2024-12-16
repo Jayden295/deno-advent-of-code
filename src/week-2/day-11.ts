@@ -130,7 +130,11 @@ function blinkOneStone(
 }
 
 // Blink on stones for steps amount of times
-function blink(stones: number[], steps: number, cache: Map<number, Map<number, number>>): number {
+function blink(
+  stones: number[],
+  steps: number,
+  cache: Map<number, Map<number, number>>,
+): number {
   let stone_count: number = 0;
   for (const stone of stones) {
     stone_count += blinkOneStone(stone, steps, cache);
