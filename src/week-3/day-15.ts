@@ -66,6 +66,43 @@ function parseInput(lines: string[]): {
   return { map, movements, robot };
 }
 
+// Turn a normal sized map into a map twice as large
+function turnMapTwiceAsLarge(map: string[]): {
+  map: string[];
+  robot: Location;
+} {
+  const new_map: string[] = [];
+  let robot: Location = { x: -1, y: -1 };
+
+  for (let y = 0; y < map.length; y++) {
+    let new_line: string = "";
+
+    for (let x = 0; x < map[y].length; x++) {
+      switch (map[y][x]) {
+        case "#":
+        case ".":
+          new_line = new_line.concat(map[y][x].repeat(2));
+          break;
+        case "@":
+          robot = { x: new_line.length, y };
+          new_line = new_line.concat("@.");
+          break;
+        case "O":
+          new_line = new_line.concat("[]");
+          break;
+        default:
+          throw new Error(
+            `Unexepected character (${map[y][x]}) on line ${y + 1}`,
+          );
+      }
+    }
+
+    new_map.push(new_line);
+  }
+
+  return { map: new_map, robot };
+}
+
 // Attempt to move a box
 // Recursive algorithm
 function attemptMoveBox(
@@ -81,6 +118,38 @@ function attemptMoveBox(
 
   // If the future location is empty, just move it and end there
   if (map[future_location.y][future_location.x] === ".") {
+    // If we are moving diagonally, we need to care about the pairs
+    if (direction.y !== 0) {
+      let pair: Location[] = [];
+
+      // If we are moving a pair make sure we are moving them together
+      if (map[location.y][location.x] === "[") {
+        pair = [location, { x: location.x + 1, y: location.y }];
+      } else if (map[location.y][location.x] === "]") {
+        pair = [location, { x: location.x - 1, y: location.y }];
+      }
+
+      // If the future location of the second pair is empty, move both of them
+      if (
+        0 < pair.length &&
+        map[pair[1].y + direction.y][pair[1].x + direction.x] === "."
+      ) {
+        const modifiable_future = [...map[pair[1].y + direction.y]];
+        modifiable_future[pair[1].x + direction.x] = map[pair[1].y][pair[1].x];
+        map[pair[1].y + direction.y] = modifiable_future.join("");
+
+        const modifiable_current = [...map[pair[1].y]];
+        modifiable_current[pair[1].x] = ".";
+        map[pair[1].y] = modifiable_current.join("");
+      } else if (0 < pair.length) {
+        // If it failed, don't move the pair
+        const output = attemptMoveBox(map, pair[1], direction);
+        map = output.map;
+        return { map, location: location };
+      }
+    }
+
+    // Move one when it's small/the other part of the pair
     const modifiable_future = [...map[future_location.y]];
     modifiable_future[future_location.x] = map[location.y][location.x];
     map[future_location.y] = modifiable_future.join("");
@@ -97,11 +166,15 @@ function attemptMoveBox(
   }
 
   // If it's a box, there might be enough space so call it again
-  if (map[future_location.y][future_location.x] === "O") {
+  if (
+    map[future_location.y][future_location.x] === "O" ||
+    map[future_location.y][future_location.x] === "[" ||
+    map[future_location.y][future_location.x] === "]"
+  ) {
     let output = attemptMoveBox(map, future_location, direction);
-    map = output.map;
-    if (map[future_location.y][future_location.x] === ".") {
-      output = attemptMoveBox(map, location, direction);
+
+    if (output.map[future_location.y][future_location.x] === ".") {
+      output = attemptMoveBox(output.map, location, direction);
       map = output.map;
       return { map, location: future_location };
     }
@@ -109,7 +182,6 @@ function attemptMoveBox(
     return { map, location };
   }
 
-  // Maybe there could be a bug because we ignore @
   throw new Error("Unexpected character in map");
 }
 
@@ -129,12 +201,13 @@ function moveBoxes(
         output = attemptMoveBox(new_map, new_robot_location, { x: -1, y: 0 });
         new_map = output.map;
         new_robot_location = output.location;
-        //console.log(new_map);
+
         break;
       case ">":
         output = attemptMoveBox(new_map, new_robot_location, { x: 1, y: 0 });
         new_map = output.map;
         new_robot_location = output.location;
+
         break;
       case "^":
         output = attemptMoveBox(new_map, new_robot_location, { x: 0, y: -1 });
@@ -146,6 +219,7 @@ function moveBoxes(
         output = attemptMoveBox(new_map, new_robot_location, { x: 0, y: 1 });
         new_map = output.map;
         new_robot_location = output.location;
+
         break;
       default:
         throw new Error(
@@ -162,7 +236,7 @@ function calculateEveryBoxCoordinates(map: string[]) {
 
   for (let y = 0; y < map.length; y++) {
     for (let x = 0; x < map[y].length; x++) {
-      if (map[y][x] === "O") {
+      if (map[y][x] === "O" || map[y][x] === "[") {
         sum += 100 * y + x;
       }
     }
@@ -183,14 +257,23 @@ async function main() {
   const lines = await OpenFileLineByLineAsArray(filename);
   const parsed_input = parseInput(lines);
 
-  const map = parsed_input.map;
   const movements = parsed_input.movements;
+
+  const map = parsed_input.map;
   const robot: Location = parsed_input.robot;
+
+  const parsed_bigger_map = turnMapTwiceAsLarge(map);
+  const bigger_map = parsed_bigger_map.map;
+  const robot_on_bigger_map = parsed_bigger_map.robot;
 
   const new_map = moveBoxes(map, movements, robot);
   const sum = calculateEveryBoxCoordinates(new_map);
 
+  const new_bigger_map = moveBoxes(bigger_map, movements, robot_on_bigger_map);
+  const bigger_sum = calculateEveryBoxCoordinates(new_bigger_map);
+
   console.log(`part 1 sum of all boxes: ${sum}`);
+  console.log(`part 2 sum of all bigger boxes: ${bigger_sum}`);
 }
 
 main();
