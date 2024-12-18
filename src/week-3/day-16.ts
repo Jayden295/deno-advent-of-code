@@ -9,7 +9,8 @@ enum ParsingStatus {
 
 type mapItem = {
   char: string;
-  score: number;
+  distance: number;
+  best_path: boolean;
 };
 
 function printUsage() {
@@ -33,7 +34,11 @@ function parseMaze(lines: string[]): { maze: mapItem[][]; start: Location } {
         // Add the trimmed line to the map
         const map_line: mapItem[] = [];
         for (const char of trimmed_line) {
-          map_line.push({ char, score: -1 });
+          map_line.push({
+            char,
+            distance: Infinity,
+            best_path: false,
+          });
         }
         maze.push(map_line);
 
@@ -58,64 +63,103 @@ function parseMaze(lines: string[]): { maze: mapItem[][]; start: Location } {
   return { maze, start };
 }
 
-// Solve maze and return maze smallest possible score
-function solveMaze(
+// Dijkstra algorithm
+// Location and direction at which we are starting with
+// Best distance is a number we need to be able to count every best node properly
+// Without it we get too many best nodes
+// Recursive algorithm
+function dijkstra(
   map: mapItem[][],
   location: Location,
   direction: Location,
-  score: number,
-): number {
-  // If we are on the end, just return the score
+  best_distance: number = -1,
+): { distance: number; best_path: boolean } {
+  // If we hit the end, check if took the best path and return current distance and true
   if (map[location.y][location.x].char === "E") {
-    return score;
+    if (
+      best_distance === -1 ||
+      map[location.y][location.x].distance === best_distance
+    ) {
+      map[location.y][location.x].best_path = true;
+      return {
+        distance: map[location.y][location.x].distance,
+        best_path: true,
+      };
+    }
   }
 
-  map[location.y][location.x].score = score;
+  // Increase distance by one
+  map[location.y][location.x].distance++;
 
-  const scores: number[] = [];
-
+  // Possible movements with the current direction sorted first
   const possible_movements: Location[] = [
     { x: -1, y: 0 },
     { x: 0, y: -1 },
     { x: 1, y: 0 },
     { x: 0, y: 1 },
-  ];
+  ].sort((a) => {
+    if (a.x === direction.x && a.y === direction.y) {
+      return -1;
+    } else {
+      return 0;
+    }
+  });
 
-  // For every movement possible
-  for (const movement of possible_movements) {
-    const future_location = {
-      x: location.x + movement.x,
-      y: location.y + movement.y,
+  // Possible outputs, so that we can run every single path possible
+  const possible_outputs: { distance: number; best_path: boolean }[] = [];
+
+  for (let i = 0; i < possible_movements.length; i++) {
+    // If we are on 1 (meaning the original direction didn't work)
+    // Add 1000 to the current distance
+    if (i === 1) {
+      map[location.y][location.x].distance += 1000;
+    }
+
+    const future_location: Location = {
+      x: location.x + possible_movements[i].x,
+      y: location.y + possible_movements[i].y,
     };
 
-    // If we are in bounds and that the current score is not -1 or bigger then the current one
-    // And if it is a free space/an ending space
     if (
       0 <= future_location.y &&
       0 <= future_location.x &&
       future_location.y < map.length &&
       future_location.x < map[future_location.y].length &&
-      (map[future_location.y][future_location.x].score === -1 ||
-        score <= map[future_location.y][future_location.x].score) &&
+      map[location.y][location.x].distance <= // Not the best check in the world, but it works fairly well
+        map[future_location.y][future_location.x].distance &&
       (map[future_location.y][future_location.x].char === "." ||
         map[future_location.y][future_location.x].char === "E")
     ) {
-      let change_score_by = 1;
+      map[future_location.y][future_location.x].distance =
+        map[location.y][location.x].distance;
 
-      // If both directions are not equal
-      if (direction.x !== movement.x || direction.y !== movement.y) {
-        change_score_by += 1000;
-      }
-
-      scores.push(
-        solveMaze(map, future_location, movement, score + change_score_by),
+      const output = dijkstra(
+        map,
+        future_location,
+        possible_movements[i],
+        best_distance,
       );
+      if (output.best_path === true) {
+        map[location.y][location.x].best_path = true;
+        possible_outputs.push(output);
+      }
     }
   }
 
-  // Return the smallest of all scores
-  // One nice thing is that it returns infinity if it's empty (maze can't be solved)
-  return Math.min(...scores);
+  // Find the smallest possible output and output that
+  possible_outputs.sort((a, b) => {
+    if (a.distance < b.distance) {
+      return -1;
+    } else {
+      return 1;
+    }
+  });
+  if (0 < possible_outputs.length) {
+    return possible_outputs[0];
+  }
+
+  // Return invalid if we found nothing
+  return { distance: -1, best_path: false };
 }
 
 async function main() {
@@ -128,11 +172,36 @@ async function main() {
   const lines = await OpenFileLineByLineAsArray(filename);
   const output = parseMaze(lines);
 
-  const maze = output.maze;
+  const original_maze = output.maze;
   const start = output.start;
+  const start_direction: Location = { x: 1, y: 0 };
+  original_maze[start.y][start.x].distance = 0;
 
-  const minimum_score = solveMaze(maze, start, { x: 1, y: 0 }, 0);
-  console.log(`minimum achivable score in maze: ${minimum_score}`);
+  const solved_maze_part_one = dijkstra(
+    structuredClone(original_maze),
+    start,
+    start_direction,
+  );
+  console.log(`lowest possible score: ${solved_maze_part_one.distance}`);
+
+  const maze_with_path = structuredClone(original_maze);
+  dijkstra(
+    maze_with_path,
+    start,
+    start_direction,
+    solved_maze_part_one.distance,
+  );
+
+  let count = 0;
+  for (const line of maze_with_path) {
+    for (const item of line) {
+      if (item.best_path === true) {
+        count++;
+      }
+    }
+  }
+
+  console.log(`tiles part of at least one of the best paths: ${count}`);
 }
 
 main();
