@@ -76,19 +76,47 @@ function checkDesign(
   return false;
 }
 
+function countWays(
+  availible_patterns: string[],
+  desired_design: string,
+  cache: Map<string, number> = new Map(),
+): number {
+  if (desired_design === "") {
+    return 1;
+  }
+  if (cache.get(desired_design) !== undefined)
+    return cache.get(desired_design)!;
+
+  let ways = 0;
+  for (const pattern of availible_patterns) {
+    if (desired_design.startsWith(pattern)) {
+      ways += countWays(
+        availible_patterns,
+        desired_design.slice(pattern.length),
+        cache,
+      );
+    }
+  }
+
+  cache.set(desired_design, ways);
+  return ways;
+}
+
 function countPossibleDesigns(
   availible_patterns: string[],
   desired_designs: string[],
 ) {
   let count = 0;
+  let ways = 0;
+
   for (let i = 0; i < desired_designs.length; i++) {
     if (checkDesign(availible_patterns, desired_designs[i]) === true) {
       count++;
     }
-    // console.log(`${i}/${desired_designs.length}`);
+    ways += countWays(availible_patterns, desired_designs[i]);
   }
 
-  return count;
+  return { count, ways };
 }
 
 async function main() {
@@ -103,6 +131,7 @@ async function main() {
 
   const availible_patterns = output.availible_patterns;
   const desired_designs = output.desired_designs;
+
   console.log(countPossibleDesigns(availible_patterns, desired_designs));
 }
 
