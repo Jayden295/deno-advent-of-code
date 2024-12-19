@@ -14,9 +14,9 @@ type Instruction = {
 };
 
 type Process = {
-  a: number;
-  b: number;
-  c: number;
+  a: bigint;
+  b: bigint;
+  c: bigint;
   program: Instruction[];
 };
 
@@ -40,24 +40,29 @@ function parseString(line: string, start: string): string {
   return line.slice(start.length);
 }
 
-function parseNumber(line: string, start: string): number {
-  const number = parseInt(parseString(line, start));
-
-  if (isNaN(number)) {
-    throw new Error(`Parsed number is NaN, line (${line}) may be invalid`);
-  }
-  return number;
+function parseNumber(line: string, start: string): bigint {
+  return BigInt(parseString(line, start));
 }
 
 // Parse computer/process from file
-function parseComputer(lines: string[]): Process {
+function parseComputer(lines: string[]): {
+  process: Process;
+  program: number[];
+} {
   let parsing_status: ParsingStatus = ParsingStatus.Nothing;
 
-  let a: number | undefined;
-  let b: number | undefined;
-  let c: number | undefined;
+  let program_numbers: number[] = [];
 
-  let process: Process = { a: -1, b: -1, c: -1, program: [] };
+  let a: bigint | undefined;
+  let b: bigint | undefined;
+  let c: bigint | undefined;
+
+  let process: Process = {
+    a: BigInt(-1),
+    b: BigInt(-1),
+    c: BigInt(-1),
+    program: [],
+  };
 
   for (let i = 0; i < lines.length; i++) {
     const trimmed_line = lines[i].trim();
@@ -85,7 +90,7 @@ function parseComputer(lines: string[]): Process {
       ) {
         parsing_status = ParsingStatus.Finished_Program;
 
-        const program_numbers = parseString(trimmed_line, PROGRAM_START)
+        program_numbers = parseString(trimmed_line, PROGRAM_START)
           .split(",")
           .map(Number);
 
@@ -121,22 +126,32 @@ function parseComputer(lines: string[]): Process {
     }
   }
 
-  return process;
+  if (
+    a === undefined ||
+    b === undefined ||
+    c === undefined ||
+    program_numbers.length <= 0
+  ) {
+    throw new Error(
+      "One of the values required to initialise a program is missing",
+    );
+  }
+  return { process, program: program_numbers };
 }
 
 // Get combo operand from literal operand
 function comboOperand(
   operand: number,
-  a: number,
-  b: number,
-  c: number,
-): number {
+  a: bigint,
+  b: bigint,
+  c: bigint,
+): bigint {
   switch (operand) {
     case 0:
     case 1:
     case 2:
     case 3:
-      return operand;
+      return BigInt(operand);
     case 4:
       return a;
     case 5:
@@ -151,48 +166,56 @@ function comboOperand(
 }
 
 // Divide instruction
-function dv(a: number, combo_operand: number): number {
-  const numerator = a;
-  const denominator = 2 ** combo_operand;
+function dv(a: bigint, combo_operand: bigint): bigint {
+  const numerator: bigint = a;
+  const denominator: bigint = BigInt(2) ** combo_operand;
 
-  return Math.trunc(numerator / denominator);
+  return numerator / denominator;
 }
 
 // Execute process
-function execute(process: Process): number[] {
+function execute(process: Process): bigint[] {
   let instruction_pointer: number = 0;
 
-  const output: number[] = [];
+  const output: bigint[] = [];
 
   // Repeat until we are out of the program size
   while (instruction_pointer < process.program.length) {
     const current_instruction = process.program[instruction_pointer];
-    const combo_operand = comboOperand(
-      current_instruction.operand,
-      process.a,
-      process.b,
-      process.c,
-    );
 
     switch (current_instruction.opcode) {
       // adv instruction (division)
       case 0: {
+        const combo_operand = comboOperand(
+          current_instruction.operand,
+          process.a,
+          process.b,
+          process.c,
+        );
+
         process.a = dv(process.a, combo_operand);
         break;
       }
       // bxl instruction
       case 1: {
-        process.b = process.b ^ current_instruction.operand;
+        process.b = process.b ^ BigInt(current_instruction.operand);
         break;
       }
       // bst instruction
       case 2: {
-        process.b = combo_operand % 8;
+        const combo_operand = comboOperand(
+          current_instruction.operand,
+          process.a,
+          process.b,
+          process.c,
+        );
+
+        process.b = combo_operand % BigInt(8);
         break;
       }
       // jnz instruction
       case 3: {
-        if (process.a !== 0) {
+        if (process.a !== BigInt(0)) {
           instruction_pointer = current_instruction.operand - 1;
         }
         break;
@@ -204,16 +227,37 @@ function execute(process: Process): number[] {
       }
       // out instruction
       case 5: {
-        output.push(combo_operand % 8);
+        const combo_operand = comboOperand(
+          current_instruction.operand,
+          process.a,
+          process.b,
+          process.c,
+        );
+
+        output.push(combo_operand % BigInt(8));
         break;
       }
       // bdv instruction
       case 6: {
+        const combo_operand = comboOperand(
+          current_instruction.operand,
+          process.a,
+          process.b,
+          process.c,
+        );
+
         process.b = dv(process.a, combo_operand);
         break;
       }
       // cdv instruction
       case 7: {
+        const combo_operand = comboOperand(
+          current_instruction.operand,
+          process.a,
+          process.b,
+          process.c,
+        );
+
         process.c = dv(process.a, combo_operand);
         break;
       }
@@ -226,13 +270,48 @@ function execute(process: Process): number[] {
 }
 
 // Format output into the way that it's intended
-function formatOutput(output: number[]): string {
+function formatOutput(output: bigint[]): string {
   let formatted: string = output[0].toString();
   for (let i = 1; i < output.length; i++) {
     formatted = formatted.concat(",", output[i].toString());
   }
 
   return formatted;
+}
+
+// Guesses A using some heuristic
+// +1 to the A register changes the first digit
+// *8 to the A register adds another digit at the start
+function guessA(process_pointer: Process, program: number[]): bigint {
+  let i = 0; // i from the end of the program
+  let register_a: bigint = BigInt(1);
+
+  do {
+    const process = structuredClone(process_pointer);
+    process.a = register_a;
+    const output = execute(process);
+
+    let equal = true;
+    for (let l = 0; l < i; l++) {
+      if (
+        BigInt(program[program.length - 1 - l]) !==
+        output[output.length - 1 - l]
+      ) {
+        equal = false;
+      }
+    }
+
+    if (equal === true && i === program.length - 1) {
+      return register_a;
+    }
+
+    if (equal === true) {
+      i++;
+      register_a *= BigInt(8);
+    } else {
+      register_a += BigInt(1);
+    }
+  } while (true);
 }
 
 async function main() {
@@ -245,12 +324,15 @@ async function main() {
   }
 
   const lines: string[] = await OpenFileLineByLineAsArray(filename);
-  const process: Process = parseComputer(lines);
+  const parsed = parseComputer(lines);
+  const process: Process = parsed.process;
 
-  const output: number[] = execute(process);
-  const formatted_output: string = formatOutput(output);
-
+  const output = execute(process);
+  const formatted_output = formatOutput(output);
   console.log(`part one: ${formatted_output}`);
+
+  const lowest_a = guessA(process, parsed.program);
+  console.log(`part two lowest a so that it outputs itself: ${lowest_a}`);
 }
 
 main();
