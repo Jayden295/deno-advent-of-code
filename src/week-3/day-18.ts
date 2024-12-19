@@ -32,7 +32,7 @@ function parseBytes(lines: string[]): Location[] {
 function initialiseMemorySpace(
   size: Location,
   falling_bytes: Location[],
-  max: number,
+  amount: number,
 ): memoryItem[][] {
   const map: memoryItem[][] = new Array(size.y + 1)
     .fill(null)
@@ -42,10 +42,21 @@ function initialiseMemorySpace(
         .map(() => ({ corrupted: false, distance: Infinity })),
     );
 
-  max = Math.min(falling_bytes.length, max);
-  for (let i = 0; i < max; i++) {
+  return addFallingBytes(map, falling_bytes, amount);
+}
+
+function addFallingBytes(
+  map_pointer: memoryItem[][],
+  falling_bytes: Location[],
+  amount: number,
+): memoryItem[][] {
+  const map = structuredClone(map_pointer);
+
+  for (let i = 0; i < amount; i++) {
     map[falling_bytes[i].y][falling_bytes[i].x].corrupted = true;
   }
+  falling_bytes.splice(0, amount);
+
   return map;
 }
 
@@ -108,15 +119,37 @@ async function main() {
 
   const lines = await OpenFileLineByLineAsArray(filename);
   const falling_bytes: Location[] = parseBytes(lines);
-  const memory_space = initialiseMemorySpace(
+  let original_memory_space = initialiseMemorySpace(
     { x: 70, y: 70 },
     falling_bytes,
     1024,
   );
 
-  const smallest_path = dijkstra(memory_space, { x: 0, y: 0 });
-
+  let smallest_path = dijkstra(structuredClone(original_memory_space), {
+    x: 0,
+    y: 0,
+  });
   console.log(`part 1 size of the shortest path: ${smallest_path}`);
+
+  // Add a falling byte and see if the path is blocked
+  // Quite slow
+  let falling_byte: Location = { x: -1, y: -1 };
+  while (smallest_path !== -1) {
+    falling_byte = falling_bytes[0];
+    original_memory_space = addFallingBytes(
+      original_memory_space,
+      falling_bytes,
+      1,
+    );
+    smallest_path = dijkstra(structuredClone(original_memory_space), {
+      x: 0,
+      y: 0,
+    });
+  }
+
+  console.log(
+    `part 2 first byte that blocks the path: ${falling_byte.x},${falling_byte.y}`,
+  );
 }
 
 main();
