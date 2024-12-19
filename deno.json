@@ -17,7 +17,8 @@
     "fifteen": "deno run --allow-read src/week-3/day-15.ts",
     "sixteen": "deno run --allow-read src/week-3/day-16.ts",
     "seventeen": "deno run --allow-read src/week-3/day-17.ts",
-    "eighteen": "deno run --allow-read src/week-3/day-18.ts"
+    "eighteen": "deno run --allow-read src/week-3/day-18.ts",
+    "nineteen": "deno run --allow-read src/week-3/day-19.ts"
   },
   "imports": {
     "@std/streams": "jsr:@std/streams@^1.0.8"
