@@ -9,7 +9,6 @@ enum ParsingStatus {
 type mapItem = {
   char: string;
   distance: number;
-  cheats: number[]; // Distance of cheats that can be used to skip there
 };
 
 function printUsage() {
@@ -34,7 +33,7 @@ function parseMaze(lines: string[]): { maze: mapItem[][]; start: Location } {
         maze.push(
           trimmed_line
             .split("")
-            .map((str) => ({ char: str, distance: Infinity, cheats: [] })),
+            .map((str) => ({ char: str, distance: Infinity })),
         );
 
         const s_index = trimmed_line.indexOf("S");
@@ -58,8 +57,8 @@ function parseMaze(lines: string[]): { maze: mapItem[][]; start: Location } {
 }
 
 // Uses a dijkstra algorithm to solve the maze
-// Does the skips at each thing and once we reach it we calculate the skip size
-function count_skips(map: mapItem[][], start: Location, min_skip: number) {
+// Returns a list of path locations
+function dijkstra(map: mapItem[][], start: Location): Location[] | undefined {
   map[start.y][start.x].distance = 0;
   const queue: Location[] = [start];
 
@@ -70,24 +69,14 @@ function count_skips(map: mapItem[][], start: Location, min_skip: number) {
     { x: 0, y: 1 },
   ];
 
-  const possible_cheats: Location[] = [
-    { x: -2, y: 0 },
-    { x: -1, y: -1 },
-    { x: 0, y: -2 },
-    { x: 1, y: -1 },
-    { x: 2, y: 0 },
-    { x: 1, y: 1 },
-    { x: 0, y: 2 },
-    { x: -1, y: 1 },
-  ];
-
-  let count = 0;
+  const path_locations: Location[] = [];
 
   while (0 < queue.length) {
     const location = queue.shift()!;
+    path_locations.push(location);
 
     if (map[location.y][location.x].char === "E") {
-      return count;
+      return path_locations;
     }
 
     for (const movement of possible_movements) {
@@ -108,40 +97,51 @@ function count_skips(map: mapItem[][], start: Location, min_skip: number) {
 
         if (new_distance < map[future_location.y][future_location.x].distance) {
           map[future_location.y][future_location.x].distance = new_distance;
-
-          // Add to count every skipped distance that is bigger then 100
-          count += map[future_location.y][future_location.x].cheats
-            .map((n) => new_distance - n)
-            .filter((n) => n >= min_skip).length;
-
           queue.push(future_location);
         }
-      }
-    }
-
-    // Try each possible cheats and if they are valid then add it
-    for (const movement of possible_cheats) {
-      const future_location: Location = {
-        x: location.x + movement.x,
-        y: location.y + movement.y,
-      };
-
-      if (
-        0 <= future_location.x &&
-        0 <= future_location.y &&
-        future_location.y < map.length &&
-        future_location.x < map[future_location.y].length &&
-        (map[future_location.y][future_location.x].char === "." ||
-          map[future_location.y][future_location.x].char === "E")
-      ) {
-        const new_distance = map[location.y][location.x].distance + 2;
-        map[future_location.y][future_location.x].cheats.push(new_distance);
       }
     }
   }
 
   // Maze can't even be solved
-  return -1;
+}
+
+// Count the amount of skips possible for a path
+function count_skips(
+  max_cheats: number,
+  min_skip: number,
+  path_locations: Location[],
+) {
+  let skips = 0;
+
+  for (let original = 0; original < path_locations.length - 1; original++) {
+    for (
+      let potential_skip = original + 1;
+      potential_skip < path_locations.length;
+      potential_skip++
+    ) {
+      const diff: Location = {
+        x: Math.abs(
+          path_locations[original].x - path_locations[potential_skip].x,
+        ),
+        y: Math.abs(
+          path_locations[original].y - path_locations[potential_skip].y,
+        ),
+      };
+
+      const total_diff = diff.x + diff.y;
+
+      if (total_diff <= max_cheats) {
+        const saved = potential_skip - original - total_diff;
+
+        if (saved >= min_skip) {
+          skips++;
+        }
+      }
+    }
+  }
+
+  return skips;
 }
 
 async function main() {
@@ -154,8 +154,18 @@ async function main() {
   const lines = await OpenFileLineByLineAsArray(filename);
   const maze = parseMaze(lines);
 
-  const skips = count_skips(maze.maze, maze.start, 100);
-  console.log(`part 1 count of skips: ${skips}`);
+  const path_locations = dijkstra(maze.maze, maze.start);
+
+  if (path_locations === undefined) {
+    throw new Error(
+      "Maze is not solvable, are you sure you didn't block a path?",
+    );
+  }
+
+  const skips_one = count_skips(2, 100, path_locations);
+  const skips_two = count_skips(20, 100, path_locations);
+  console.log(`part 1 count of skips (10 allowed): ${skips_one}`);
+  console.log(`part 2 count of skips (20 allowed): ${skips_two}`);
 }
 
 main();
