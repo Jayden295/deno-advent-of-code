@@ -176,81 +176,82 @@ function dijkstra_wrapper(
   return dijkstra(map, start, goal);
 }
 
-// Get the sequence required to print one number
-function getLengthDigit(
-  start: Location,
-  char: string,
-): { sequence: string; end: Location } {
-  const numeric_robot = dijkstra_wrapper(NUMERIC.map, start, char.toString());
-  if (numeric_robot === undefined) {
-    throw new Error(
-      `Couldn't find ${char} inside of NUMERIC.map, this shouldn't happen...`,
-    );
-  }
-
-  let output = "";
-  let robot_start = DIRECTIONAL.index;
-
-  for (const rchar of numeric_robot.sequence) {
-    const robot_output = dijkstra_wrapper(DIRECTIONAL.map, robot_start, rchar);
-    if (robot_output === undefined) {
-      throw new Error(
-        `Couldn't find ${rchar} inside of DIRECTIONAL.map, this shouldn't happen...`,
-      );
-    }
-
-    robot_start = robot_output.location;
-
-    let human_start = DIRECTIONAL.index;
-    for (const hchar of robot_output.sequence) {
-      const human_output = dijkstra_wrapper(
-        DIRECTIONAL.map,
-        human_start,
-        hchar,
-      );
-      if (human_output === undefined) {
-        throw new Error(
-          `Couldn't find ${hchar} inside of DIRECTIONAL.map, this shouldn't happen...`,
-        );
-      }
-
-      human_start = human_output.location;
-      output = output.concat(human_output.sequence);
-    }
-  }
-
-  return {
-    sequence: output,
-    end: numeric_robot.location,
-  };
-}
-
 // Get the length required to type one code
-function getLengthCode(to_type: string) {
-  let start = NUMERIC.index;
-
-  let code_sequence: string = "";
-  for (const char of to_type) {
-    const output = getLengthDigit(start, char);
-    start = output.end;
-    code_sequence = code_sequence.concat(output.sequence);
+// Memoization using robot_directional_keypads and to_type as keys
+const get_length_cache: Map<number, Map<string, number>> = new Map();
+function getLengthCode(
+  to_type: string,
+  robot_directional_keypads: number,
+  first: boolean = true,
+): number {
+  // Check cache
+  const robot_cache = get_length_cache.get(robot_directional_keypads);
+  if (robot_cache !== undefined) {
+    const to_type_cache = robot_cache.get(to_type);
+    if (to_type_cache !== undefined) return to_type_cache;
   }
 
-  return code_sequence.length;
+  let map: mapItem[][];
+  let start: Location;
+
+  // If this is the first run then we start with numeric
+  if (first === true) {
+    map = NUMERIC.map;
+    start = NUMERIC.index;
+  } else {
+    map = DIRECTIONAL.map;
+    start = DIRECTIONAL.index;
+  }
+
+  // Find length using recursion
+  let length: number = 0;
+  for (const char of to_type) {
+    const robot = dijkstra_wrapper(map, start, char.toString());
+    if (robot === undefined) {
+      throw new Error(
+        `Couldn't find ${char} inside of the map, this shouldn't happen...`,
+      );
+    }
+    start = robot.location;
+
+    if (robot_directional_keypads > 0) {
+      length += getLengthCode(
+        robot.sequence,
+        robot_directional_keypads - 1,
+        false,
+      );
+    } else {
+      length += robot.sequence.length;
+    }
+  }
+
+  // Cache the results
+  if (robot_cache === undefined) {
+    get_length_cache.set(
+      robot_directional_keypads,
+      new Map([[to_type, length]]),
+    );
+  } else {
+    robot_cache.set(to_type, length);
+  }
+
+  return length;
 }
 
 // Calculate the complexity of one code
-function getComplexityCode(code: code) {
-  const length = getLengthCode(code.to_type);
+function getComplexityCode(code: code, robot_directional_keypads: number) {
+  const length = getLengthCode(code.to_type, robot_directional_keypads);
   return length * code.numeric;
 }
 
 // Calculate the total complexity
-function calculateTotalComplexity(codes: code[]): number {
+function calculateTotalComplexity(
+  codes: code[],
+  robot_directional_keypads: number,
+): number {
   let total_complexity = 0;
-  for (const code of codes) {
-    total_complexity += getComplexityCode(code);
-  }
+  for (const code of codes)
+    total_complexity += getComplexityCode(code, robot_directional_keypads);
 
   return total_complexity;
 }
@@ -265,9 +266,11 @@ async function main() {
   const lines: string[] = await OpenFileLineByLineAsArray(filename);
   const codes: code[] = parseCodes(lines);
 
-  const total_complexity = calculateTotalComplexity(codes);
+  const part_one = calculateTotalComplexity(codes, 2);
+  const part_two = calculateTotalComplexity(codes, 25);
 
-  console.log(`total complexity: ${total_complexity}`);
+  console.log(`part 1 total complexity: ${part_one}`);
+  console.log(`part 2 total complexity: ${part_two}`);
 }
 
 main();
