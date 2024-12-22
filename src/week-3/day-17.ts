@@ -295,7 +295,7 @@ function guessA(process_pointer: Process, program: number[]): bigint {
     for (let l = 0; l < i; l++) {
       if (
         BigInt(program[program.length - 1 - l]) !==
-        output[output.length - 1 - l]
+          output[output.length - 1 - l]
       ) {
         equal = false;
       }

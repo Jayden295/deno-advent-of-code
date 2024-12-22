@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { OpenFileLineByLineAsArray, Location } from "../helper.ts";
+import { Location, OpenFileLineByLineAsArray } from "../helper.ts";
 
 enum ParsingStatus {
   Nothing,
@@ -53,8 +53,7 @@ function parseMaze(lines: string[]): { maze: mapItem[][]; start: Location } {
           `Non empty line at line ${i} even though we finished parsing the maze`,
         );
       }
-    }
-    // If this is an empty line and we are parsing, finish it
+    } // If this is an empty line and we are parsing, finish it
     else if (parsing_status === ParsingStatus.Parsing) {
       parsing_status = ParsingStatus.Finished;
     }

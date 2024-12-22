@@ -1,4 +1,4 @@
-import { OpenFileLineByLineAsArray, Location } from "../helper.ts";
+import { Location, OpenFileLineByLineAsArray } from "../helper.ts";
 
 type memoryItem = {
   corrupted: boolean;
@@ -39,7 +39,7 @@ function initialiseMemorySpace(
     .map(() =>
       new Array(size.x + 1)
         .fill(null)
-        .map(() => ({ corrupted: false, distance: Infinity })),
+        .map(() => ({ corrupted: false, distance: Infinity }))
     );
 
   return addFallingBytes(map, falling_bytes, amount);

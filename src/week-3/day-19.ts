@@ -56,8 +56,9 @@ function checkDesign(
   if (desired_design === "") {
     return true;
   }
-  if (cache.get(desired_design) !== undefined)
+  if (cache.get(desired_design) !== undefined) {
     return cache.get(desired_design)!;
+  }
 
   for (const pattern of availible_patterns) {
     if (desired_design.startsWith(pattern)) {
@@ -67,8 +68,9 @@ function checkDesign(
           desired_design.slice(pattern.length),
           cache,
         ) === true
-      )
+      ) {
         return true;
+      }
     }
   }
 
@@ -84,8 +86,9 @@ function countWays(
   if (desired_design === "") {
     return 1;
   }
-  if (cache.get(desired_design) !== undefined)
+  if (cache.get(desired_design) !== undefined) {
     return cache.get(desired_design)!;
+  }
 
   let ways = 0;
   for (const pattern of availible_patterns) {

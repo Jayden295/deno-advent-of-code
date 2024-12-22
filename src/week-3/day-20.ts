@@ -1,4 +1,4 @@
-import { OpenFileLineByLineAsArray, Location } from "../helper.ts";
+import { Location, OpenFileLineByLineAsArray } from "../helper.ts";
 
 enum ParsingStatus {
   Nothing,
