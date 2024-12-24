@@ -1,5 +1,9 @@
 import { OpenFileLineByLineAsArray } from "../helper.ts";
 
+// Help needed: YES, I looked up online for potential AOC
+// solutions and found out that you could use the bron
+// kerbosch algorithm
+
 type Computers = Map<string, Set<string>>;
 
 // Add the connection to a specific computer inside of the computers list
@@ -80,6 +84,55 @@ function countConnections(computers: Computers, key: string): number {
   return valid_count;
 }
 
+// get an array of every single map item/whatev
+// for each pair => create the connection they have
+// we assume the biggest is that while in reality it isnt
+// check first amount of pairs
+
+function filter_computers(map_one: Computers, keys: string[]): Computers {
+  const potential_keys = [...map_one.keys()];
+  const common_keys = potential_keys.filter(
+    (value) => keys.indexOf(value) >= 0,
+  );
+
+  const common: Computers = new Map();
+  for (const key of common_keys) {
+    common.set(key, map_one.get(key)!);
+  }
+
+  return common;
+}
+
+// Use the bron-kerbosch algorithmt to find the biggest connection
+function bron_kerbosch(
+  candidate: Computers,
+  potential: Computers,
+  exclude: Computers,
+): string[] {
+  if (potential.size <= 0 && exclude.size <= 0) {
+    return [...candidate.keys()].sort();
+  }
+
+  let biggest: string[] = [];
+  for (const vertex of potential) {
+    const candidate_test = structuredClone(candidate);
+    candidate_test.set(vertex[0], vertex[1]);
+
+    const neighbours = [...vertex[1]];
+
+    const vp: Computers = filter_computers(potential, neighbours);
+    const ve: Computers = filter_computers(exclude, neighbours);
+
+    const output = bron_kerbosch(candidate_test, vp, ve);
+    if (output.length > biggest.length) biggest = output;
+
+    potential.delete(vertex[0]);
+    exclude.set(vertex[0], vertex[1]);
+  }
+
+  return biggest;
+}
+
 // Count amount of potential chief computers
 function countPotentialComputers(
   computers_pointer: Computers,
@@ -110,6 +163,10 @@ async function main() {
     computers.potential_chief,
   );
   console.log(`count of potential chiefs: ${count}`);
+
+  const lan_party = bron_kerbosch(new Map(), computers.computers, new Map());
+  const password = lan_party.join();
+  console.log(`password to join lan party: ${password}`);
 }
 
 main();
