@@ -142,8 +142,6 @@ function parseDevice(lines: string[]): Device {
     }
   }
 
-  console.log(connections);
-
   return { variables, connections };
 }
 
@@ -216,93 +214,70 @@ function getNumber(
   return parseInt(binary, 2);
 }
 
-function findFix(device: Device): string[] {
-  const x = getNumber(device.variables, "x");
-  const y = getNumber(device.variables, "y");
-
-  const xy = x + y;
-
-  //console.log(x, "+", y, "=", xy);
-
-  const output = execute(device);
-  console.log(`decimal output of z wires: ${output}`);
-
-  if (output === xy) {
-    console.log(
-      `WARNING: Cannot find wires to fix because program already works!`,
-    );
-  }
-
-  const test = [6, 7, 4, 8, 9];
-  // 67 64 68 69 74 78 79 48 49 89
-  // 67 48
-  // 67 49
-  // 67 89
-  // 64 78
-  // 64 79
-  // 64 89
-  // 68 74
-  // 68 79
-  // 68 49
-  // 69 74
-  // 69 78
-  // 69 48
-  // 74 89
-  // 78 49
-  // 79 48
-  // find 2 pairs
-
-  // loop though every single out
-  //    find pair for one thing
-  //    find pair for other thing
-
-  // find pairs
-  //
-  // list of 4 pairs: [[], []]
-
-  // get every single out
-  //device.connections[0]
-
-  for (const connection of device.connections) {
+function findConnectionGateInput(
+  connections: Connection[],
+  name: string,
+  gate: Gate,
+): boolean {
+  for (const other of connections) {
     if (
-      (connection.one.startsWith("x") && connection.two.startsWith("y")) ||
-      (connection.one.startsWith("y") && connection.two.startsWith("x"))
+      other.operation === gate &&
+      (other.one === name || other.two === name)
     ) {
-      if (connection.operation === Gate.XOR) {
-        // there must be another xor gate as input
-        let good: boolean = false;
-        for (const other of device.connections) {
-          if (
-            other.operation === Gate.XOR &&
-            (other.one === connection.out || other.two === connection.out)
-          ) {
-            good = true;
-          }
-        }
-        if (good === false) {
-          console.log(connection);
-        }
-      }
-    }
-    if (connection.operation === Gate.AND) {
-      let good: boolean = false;
-      for (const other of device.connections) {
-        if (
-          other.operation === Gate.OR &&
-          (other.one === connection.out || other.two === connection.out)
-        ) {
-          good = true;
-        }
-      }
-      if (good === false) {
-        console.log(connection);
-      }
+      return true;
     }
   }
+
+  return false;
 }
 
-// find 4 pairs that we need to swap the output
-// so that it performs addition properly
+function findFix(connections: Connection[]): string[] {
+  const incorrect: Set<string> = new Set();
+
+  for (const connection of connections) {
+    // If we output to z (not the final one) => we must have a XOR
+    if (connection.out.startsWith("z") === true) {
+      if (connection.operation !== Gate.XOR && connection.out !== "z45")
+        incorrect.add(connection.out);
+    }
+    // If we don't output to z AND input not x/y -> cannot be XOR
+    else if (
+      connection.one.startsWith("x") === false &&
+      connection.two.startsWith("y") === false &&
+      connection.one.startsWith("y") === false &&
+      connection.two.startsWith("x") === false &&
+      connection.operation === Gate.XOR
+    ) {
+      incorrect.add(connection.out);
+    }
+    // Not x0 or y0
+    else if (
+      connection.one !== "y00" &&
+      connection.one !== "x00" &&
+      connection.two !== "y00" &&
+      connection.two !== "x00"
+    ) {
+      // If XOR gate with x and y => Output goes into another XOR gate
+      if (
+        connection.operation === Gate.XOR &&
+        ((connection.one.startsWith("x") && connection.two.startsWith("y")) ||
+          (connection.one.startsWith("y") && connection.two.startsWith("x"))) &&
+        findConnectionGateInput(connections, connection.out, Gate.XOR) === false
+      ) {
+        incorrect.add(connection.out);
+      }
+      // If AND gate => Outputs to an OR gate
+      else if (
+        connection.operation === Gate.AND &&
+        findConnectionGateInput(connections, connection.out, Gate.OR) === false
+      ) {
+        incorrect.add(connection.out);
+      }
+    }
+  }
+
+  return [...incorrect].sort();
+}
 
 async function main() {
   const filename = Deno.args[0];
@@ -314,7 +289,11 @@ async function main() {
   const lines = await OpenFileLineByLineAsArray(filename);
   const device: Device = parseDevice(lines);
 
-  findFix(device);
+  const output = execute(device);
+  console.log(`decimal output of z wires: ${output}`);
+
+  const incorrect = findFix(device.connections);
+  console.log(`outputs to swap: ${incorrect.join()}`);
 }
 
 main();
