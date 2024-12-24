@@ -1,5 +1,12 @@
 import { OpenFileLineByLineAsArray } from "../helper.ts";
 
+// HELP REQUIRED: For part 1 no (except the obvious looking
+// up how to convert to binary and that silly stuff)
+// For part 2 yes, I used https://www.reddit.com/r/adventofcode/comments/1hla5ql
+// a reddit tutorial
+//
+// To be honest, just wow, makes me think of the nand2tetris course.
+
 enum ParsingStatus {
   Nothing,
   Variables,
@@ -135,6 +142,8 @@ function parseDevice(lines: string[]): Device {
     }
   }
 
+  console.log(connections);
+
   return { variables, connections };
 }
 
@@ -181,14 +190,22 @@ function execute(device: Device): number {
   }
 
   // Get the output
-  const outputs = [...device.variables.keys()]
-    .filter((key) => key.startsWith("z"))
+  return getNumber(device.variables, "z");
+}
+
+function getNumber(
+  variables: Map<string, boolean>,
+  starts_with: string,
+): number {
+  // Get the output
+  const outputs = [...variables.keys()]
+    .filter((key) => key.startsWith(starts_with))
     .sort()
     .reverse();
 
   let binary = "";
   for (const out of outputs) {
-    const value = device.variables.get(out);
+    const value = variables.get(out);
     if (value === undefined)
       throw new Error(`out (${out}) doesn't exist in variables`);
 
@@ -198,6 +215,94 @@ function execute(device: Device): number {
 
   return parseInt(binary, 2);
 }
+
+function findFix(device: Device): string[] {
+  const x = getNumber(device.variables, "x");
+  const y = getNumber(device.variables, "y");
+
+  const xy = x + y;
+
+  //console.log(x, "+", y, "=", xy);
+
+  const output = execute(device);
+  console.log(`decimal output of z wires: ${output}`);
+
+  if (output === xy) {
+    console.log(
+      `WARNING: Cannot find wires to fix because program already works!`,
+    );
+  }
+
+  const test = [6, 7, 4, 8, 9];
+  // 67 64 68 69 74 78 79 48 49 89
+  // 67 48
+  // 67 49
+  // 67 89
+  // 64 78
+  // 64 79
+  // 64 89
+  // 68 74
+  // 68 79
+  // 68 49
+  // 69 74
+  // 69 78
+  // 69 48
+  // 74 89
+  // 78 49
+  // 79 48
+  // find 2 pairs
+
+  // loop though every single out
+  //    find pair for one thing
+  //    find pair for other thing
+
+  // find pairs
+  //
+  // list of 4 pairs: [[], []]
+
+  // get every single out
+  //device.connections[0]
+
+  for (const connection of device.connections) {
+    if (
+      (connection.one.startsWith("x") && connection.two.startsWith("y")) ||
+      (connection.one.startsWith("y") && connection.two.startsWith("x"))
+    ) {
+      if (connection.operation === Gate.XOR) {
+        // there must be another xor gate as input
+        let good: boolean = false;
+        for (const other of device.connections) {
+          if (
+            other.operation === Gate.XOR &&
+            (other.one === connection.out || other.two === connection.out)
+          ) {
+            good = true;
+          }
+        }
+        if (good === false) {
+          console.log(connection);
+        }
+      }
+    }
+    if (connection.operation === Gate.AND) {
+      let good: boolean = false;
+      for (const other of device.connections) {
+        if (
+          other.operation === Gate.OR &&
+          (other.one === connection.out || other.two === connection.out)
+        ) {
+          good = true;
+        }
+      }
+      if (good === false) {
+        console.log(connection);
+      }
+    }
+  }
+}
+
+// find 4 pairs that we need to swap the output
+// so that it performs addition properly
 
 async function main() {
   const filename = Deno.args[0];
@@ -209,8 +314,7 @@ async function main() {
   const lines = await OpenFileLineByLineAsArray(filename);
   const device: Device = parseDevice(lines);
 
-  const output = execute(device);
-  console.log(`decimal output of z wires: ${output}`);
+  findFix(device);
 }
 
 main();
